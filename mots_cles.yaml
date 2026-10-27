@@ -1,0 +1,86 @@
+# ============================================================
+#  MOTS-CLÉS DE FILTRAGE
+# ------------------------------------------------------------
+#  Un article est gardé s'il contient AU MOINS UN mot-clé
+#  de la liste "obligatoires" (le sujet IA / numérique)
+#  ET AU MOINS UN mot-clé de la liste "juridiques" (le volet droit).
+#
+#  Cette double condition évite de recevoir tous les articles
+#  qui parlent d'IA en général (économie, sport, etc.).
+#
+#  Les accents et les majuscules sont ignorés par le script :
+#  "décision" attrape aussi "DECISION" et "decision".
+# ============================================================
+
+# --- Thème : IA et numérique -------------------------------
+obligatoires:
+  - intelligence artificielle
+  - IA
+  - algorithme
+  - algorithmique
+  - apprentissage automatique
+  - machine learning
+  - systeme automatise
+  - decision automatisee
+  - profilage
+  - donnees personnelles
+  - donnees a caractere personnel
+  - numerique
+  - chatgpt
+  - modele de langage
+  - justice predictive
+  - reconnaissance faciale
+  - biometrie
+  - deepfake
+
+# --- Volet juridique ---------------------------------------
+juridiques:
+  - loi
+  - projet de loi
+  - proposition de loi
+  - decret
+  - arrete
+  - ordonnance
+  - reglement
+  - directive
+  - code
+  - juridique
+  - droit
+  - justice
+  - tribunal
+  - cour
+  - juge
+  - magistrat
+  - jurisprudence
+  - arret
+  - decision
+  - sanction
+  - amende
+  - deliberation
+  - avis
+  - conformite
+  - regulation
+  - encadrement
+  - legislation
+  - parlement
+  - constitutionnel
+  - responsabilite
+  - contentieux
+  - CNIL
+  - CNDP
+  - ARTCI
+  - RGPD
+  - AI Act
+
+# --- Mots à exclure ----------------------------------------
+#  Si l'un de ces mots apparaît dans le titre, l'article est
+#  écarté. Utile pour éliminer la publicité et le marketing.
+exclus:
+  - promo
+  - soldes
+  - bon plan
+  - black friday
+  - offre d'emploi
+  - recrutement
+  - action en bourse
+  - cours de l'action

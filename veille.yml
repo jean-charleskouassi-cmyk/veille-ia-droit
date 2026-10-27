@@ -1,0 +1,74 @@
+# ============================================================
+#  AUTOMATISATION GITHUB ACTIONS
+# ------------------------------------------------------------
+#  Ce fichier doit être placé dans ton dépôt GitHub à l'emplacement :
+#      .github/workflows/veille.yml
+#
+#  Il lance le script tout seul chaque lundi à 7h00 (heure du Maroc),
+#  gratuitement, sans que ton ordinateur soit allumé.
+# ============================================================
+
+name: Veille juridique IA
+
+on:
+  schedule:
+    # Format : minute heure jour mois jour-de-la-semaine, en heure UTC.
+    # Le Maroc est à UTC+1 en heure d'hiver : 06h00 UTC = 07h00 à Casablanca.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    # Permet aussi de lancer la veille à la main depuis l'onglet
+    # "Actions" de ton dépôt GitHub, en cliquant sur "Run workflow".
+
+# Autorise le robot à réécrire les fichiers d'historique dans le dépôt
+permissions:
+  contents: write
+
+jobs:
+  veille:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Récupère le contenu de ton dépôt
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      # 2. Installe Python
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # 3. Installe les bibliothèques
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      # 4. Lance la veille
+      #    Les clés secrètes sont lues depuis les "Secrets" du dépôt
+      #    (Settings > Secrets and variables > Actions > New repository secret)
+      - name: Lancer la veille
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MAIL_EXPEDITEUR: ${{ secrets.MAIL_EXPEDITEUR }}
+          MAIL_MOT_DE_PASSE: ${{ secrets.MAIL_MOT_DE_PASSE }}
+          MAIL_DESTINATAIRE: ${{ secrets.MAIL_DESTINATAIRE }}
+        run: python veille.py
+
+      # 5. Conserve le bulletin comme fichier téléchargeable pendant 90 jours
+      - name: Conserver le bulletin
+        uses: actions/upload-artifact@v4
+        with:
+          name: bulletin-veille
+          path: data/*.html
+          retention-days: 90
+
+      # 6. Enregistre l'historique et l'archive dans le dépôt,
+      #    pour que les doublons soient évités d'une semaine sur l'autre
+      - name: Sauvegarder l'historique
+        run: |
+          git config user.name "robot-veille"
+          git config user.email "robot-veille@users.noreply.github.com"
+          git add data/
+          # "git diff --staged --quiet" renvoie une erreur s'il y a des changements.
+          # On ne crée donc un commit que dans ce cas.
+          git diff --staged --quiet || git commit -m "Veille du $(date +'%d/%m/%Y')"
+          git push

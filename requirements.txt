@@ -1,0 +1,6 @@
+# Bibliothèques nécessaires au script de veille.
+# Installation :  pip install -r requirements.txt
+
+feedparser>=6.0.10    # lecture des flux RSS
+requests>=2.31.0      # téléchargement des flux et appel à l'API Groq
+PyYAML>=6.0           # lecture des fichiers sources.yaml et mots_cles.yaml

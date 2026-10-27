@@ -64,9 +64,10 @@ JOURS_PAR_DEFAUT = 7        # on regarde les 7 derniers jours
 MAX_PAR_SOURCE = 40         # on ne lit pas plus de 40 articles par flux
 MAX_RESUMES_IA = 25         # on ne demande pas plus de 25 résumés à l'IA par bulletin
 
-# Modèle Groq utilisé pour les résumés. Si Groq change ses modèles,
-# c'est la seule ligne à modifier.
-MODELE_GROQ = "llama-3.3-70b-versatile"
+# Modèle Groq utilisé pour les résumés. Si Groq retire ce modèle un jour,
+# c'est la seule ligne à modifier : la liste à jour est sur
+# https://console.groq.com/docs/models
+MODELE_GROQ = "openai/gpt-oss-120b"
 
 # Certains sites refusent les robots sans "carte de visite".
 # On se présente donc comme un navigateur classique.
@@ -143,7 +144,11 @@ def lire_un_flux(source):
 
     try:
         reponse = requests.get(url, headers=ENTETES, timeout=25)
-        reponse.raise_for_status()      # déclenche une erreur si le code HTTP est 404, 500...
+        if reponse.status_code != 200:
+            # On affiche le code HTTP : 404 = adresse du flux erronée,
+            # 403 = le site refuse les robots, 500 = site en panne.
+            print(f"  [échec]   {nom} : code HTTP {reponse.status_code}")
+            return []
         flux = feedparser.parse(reponse.content)
     except Exception as erreur:
         print(f"  [échec]   {nom} : {type(erreur).__name__}")
@@ -166,6 +171,9 @@ def lire_un_flux(source):
             "source": nom,
             "pays": source.get("pays", "Non précisé"),
             "type_source": source.get("type", "presse"),
+            # "double" : il faut un mot du thème ET un mot juridique
+            # "simple" : un mot du thème suffit (voir article_pertinent)
+            "filtre": source.get("filtre", "double"),
         })
 
     print(f"  [ok]      {nom} : {len(articles)} articles")
@@ -190,8 +198,20 @@ def collecter(config_sources):
 
 def article_pertinent(article, mots):
     """Renvoie True si l'article mérite d'entrer dans le bulletin.
-    Règle : au moins un mot du thème IA ET au moins un mot juridique,
-    et aucun mot de la liste 'exclus' dans le titre."""
+
+    Deux niveaux de sévérité, selon le champ "filtre" de la source :
+
+      - "double" : il faut un mot du thème IA ET un mot juridique.
+        C'est le réglage des flux généralistes, qui déversent de tout.
+
+      - "simple" : un mot du thème suffit.
+        C'est le réglage des recherches Google Actualités, dont la
+        requête contient déjà les termes juridiques. Leur résumé RSS se
+        limite au titre, donc exiger en plus un mot juridique dans ce
+        titre rejetterait presque tout.
+
+    Dans les deux cas, un mot de la liste "exclus" dans le titre
+    écarte l'article."""
     texte = sans_accents(article["titre"] + " " + article["extrait"])
     titre = sans_accents(article["titre"])
 
@@ -202,11 +222,14 @@ def article_pertinent(article, mots):
 
     # 2. Le sujet doit toucher à l'IA ou au numérique
     theme_ok = any(sans_accents(m) in texte for m in mots.get("obligatoires", []))
+    if not theme_ok:
+        return False
 
-    # 3. Le sujet doit aussi toucher au droit
-    droit_ok = any(sans_accents(m) in texte for m in mots.get("juridiques", []))
+    # 3. Pour les sources généralistes seulement : un mot juridique aussi
+    if article.get("filtre", "double") == "simple":
+        return True
 
-    return theme_ok and droit_ok
+    return any(sans_accents(m) in texte for m in mots.get("juridiques", []))
 
 
 def filtrer(articles, mots, jours, deja_vus):
@@ -217,24 +240,38 @@ def filtrer(articles, mots, jours, deja_vus):
     retenus = []
     liens_de_ce_tour = set()
 
+    # On compte les rejets par motif, pour pouvoir régler le dispositif
+    ecartes = {"trop ancien": 0, "déjà vu": 0, "doublon": 0, "hors sujet": 0}
+
     for article in articles:
         if article["date"] < limite:
-            continue                                    # trop ancien
+            ecartes["trop ancien"] += 1
+            continue
         if not article["lien"]:
             continue                                    # sans lien, inutilisable
         if article["lien"] in deja_vus:
-            continue                                    # déjà envoyé dans un bulletin précédent
+            ecartes["déjà vu"] += 1
+            continue
         if article["lien"] in liens_de_ce_tour:
-            continue                                    # doublon dans la même collecte
+            ecartes["doublon"] += 1
+            continue
         if not article_pertinent(article, mots):
-            continue                                    # hors sujet
+            ecartes["hors sujet"] += 1
+            continue
 
         liens_de_ce_tour.add(article["lien"])
         retenus.append(article)
 
     # Les plus récents en premier
     retenus.sort(key=lambda a: a["date"], reverse=True)
+
     print(f"{len(retenus)} articles retenus (sur {len(articles)} collectés)")
+    detail = ", ".join(f"{motif} : {n}" for motif, n in ecartes.items() if n)
+    if detail:
+        print(f"Écartés — {detail}")
+    if not retenus and articles:
+        print("Aucun article retenu. Essaie une période plus large "
+              "(--jours 30) ou assouplis mots_cles.yaml.")
     return retenus
 
 
@@ -275,10 +312,17 @@ def resumer_avec_groq(article, cle_api):
             },
             timeout=45,
         )
-        reponse.raise_for_status()
+        if reponse.status_code != 200:
+            # On affiche le message exact renvoyé par Groq : c'est lui qui dit
+            # si la clé est invalide, si le quota est atteint ou si le modèle
+            # n'existe plus. Sans ça, on ne saurait pas quoi corriger.
+            print(f"  [IA indisponible] code {reponse.status_code} : "
+                  f"{reponse.text[:300]}")
+            return article["extrait"][:400], "Non classé"
         texte = reponse.json()["choices"][0]["message"]["content"].strip()
     except Exception as erreur:
-        print(f"  [IA indisponible] {type(erreur).__name__} — extrait RSS conservé")
+        print(f"  [IA indisponible] {type(erreur).__name__} : {erreur} "
+              f"— extrait RSS conservé")
         return article["extrait"][:400], "Non classé"
 
     # On sépare le résumé de la ligne "THEME:"

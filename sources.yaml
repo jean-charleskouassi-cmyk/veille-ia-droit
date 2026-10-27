@@ -8,6 +8,11 @@
 #              (sert à indiquer le niveau de fiabilité)
 #    url     : l'adresse du flux RSS
 #    actif   : true pour l'utiliser, false pour la mettre en pause
+#    filtre  : "double" (defaut) = il faut un mot du theme IA ET un mot
+#              juridique dans le titre ou le resume.
+#              "simple" = un mot du theme suffit. A reserver aux recherches
+#              Google Actualites, dont la requete contient deja les termes
+#              juridiques et dont le resume se limite au titre.
 #
 #  Pour ajouter une source : copie un bloc, change les valeurs.
 #  Pour désactiver une source qui ne répond plus : actif: false
@@ -28,13 +33,35 @@ sources:
   - nom: "Conseil d'État - actualités"
     pays: "France"
     type: "officiel"
-    url: "https://www.conseil-etat.fr/rss/actualites"
+    url: "https://www.conseil-etat.fr/rss/actualites-rss"
     actif: true
 
+  - nom: "Conseil d'État - avis au Gouvernement et au Parlement"
+    pays: "France"
+    type: "officiel"
+    url: "https://www.conseil-etat.fr/rss/avis-rss"
+    actif: true
+
+  - nom: "Conseil d'État - analyses de jurisprudence"
+    pays: "France"
+    type: "officiel"
+    url: "https://www.conseil-etat.fr/rss/analyses-de-jurisprudence-rss"
+    actif: true
+
+  # Le flux de la Commission europeenne a renvoye une erreur HTTP lors du
+  # premier essai : il refuse les robots. On passe par Google Actualites
+  # ci-dessous pour suivre le reglement europeen sur l'IA.
   - nom: "Commission européenne - numérique"
     pays: "Europe"
     type: "officiel"
     url: "https://digital-strategy.ec.europa.eu/en/rss.xml"
+    actif: false
+
+  - nom: "Google Actualités - règlement européen sur l'IA (AI Act)"
+    pays: "Europe"
+    type: "presse"
+    filtre: "simple"
+    url: "https://news.google.com/rss/search?q=%22AI+Act%22+OR+%22r%C3%A8glement+europ%C3%A9en+sur+l%27intelligence+artificielle%22&hl=fr&gl=FR&ceid=FR:fr"
     actif: true
 
   - nom: "Comité européen de la protection des données (EDPB)"
@@ -47,6 +74,7 @@ sources:
   - nom: "Google Actualités - IA et droit (France)"
     pays: "France"
     type: "presse"
+    filtre: "simple"
     url: "https://news.google.com/rss/search?q=%22intelligence+artificielle%22+(loi+OR+r%C3%A8glement+OR+justice+OR+CNIL)+France&hl=fr&gl=FR&ceid=FR:fr"
     actif: true
 
@@ -59,18 +87,21 @@ sources:
   - nom: "Google Actualités - IA et droit (Maroc)"
     pays: "Maroc"
     type: "presse"
+    filtre: "simple"
     url: "https://news.google.com/rss/search?q=%22intelligence+artificielle%22+(loi+OR+projet+de+loi+OR+justice+OR+CNDP+OR+num%C3%A9rique)+Maroc&hl=fr&gl=MA&ceid=MA:fr"
     actif: true
 
   - nom: "Google Actualités - CNDP et données personnelles (Maroc)"
     pays: "Maroc"
     type: "presse"
+    filtre: "simple"
     url: "https://news.google.com/rss/search?q=(CNDP+OR+%22donn%C3%A9es+personnelles%22+OR+%2209-08%22)+Maroc&hl=fr&gl=MA&ceid=MA:fr"
     actif: true
 
   - nom: "Google Actualités - Bulletin officiel et textes (Maroc)"
     pays: "Maroc"
     type: "presse"
+    filtre: "simple"
     url: "https://news.google.com/rss/search?q=(%22bulletin+officiel%22+OR+d%C3%A9cret+OR+%22projet+de+loi%22)+(num%C3%A9rique+OR+%22intelligence+artificielle%22+OR+donn%C3%A9es)+Maroc&hl=fr&gl=MA&ceid=MA:fr"
     actif: true
 
@@ -81,18 +112,21 @@ sources:
   - nom: "Google Actualités - IA et droit (Côte d'Ivoire)"
     pays: "Côte d'Ivoire"
     type: "presse"
+    filtre: "simple"
     url: "https://news.google.com/rss/search?q=%22intelligence+artificielle%22+(loi+OR+justice+OR+num%C3%A9rique+OR+ARTCI)+%22C%C3%B4te+d%27Ivoire%22&hl=fr&gl=CI&ceid=CI:fr"
     actif: true
 
   - nom: "Google Actualités - ARTCI et données personnelles (Côte d'Ivoire)"
     pays: "Côte d'Ivoire"
     type: "presse"
+    filtre: "simple"
     url: "https://news.google.com/rss/search?q=(ARTCI+OR+%22donn%C3%A9es+personnelles%22+OR+%222013-450%22)+%22C%C3%B4te+d%27Ivoire%22&hl=fr&gl=CI&ceid=CI:fr"
     actif: true
 
   - nom: "Google Actualités - textes et décrets (Côte d'Ivoire)"
     pays: "Côte d'Ivoire"
     type: "presse"
+    filtre: "simple"
     url: "https://news.google.com/rss/search?q=(%22journal+officiel%22+OR+d%C3%A9cret+OR+ordonnance)+(num%C3%A9rique+OR+%22intelligence+artificielle%22+OR+donn%C3%A9es)+%22C%C3%B4te+d%27Ivoire%22&hl=fr&gl=CI&ceid=CI:fr"
     actif: true
 

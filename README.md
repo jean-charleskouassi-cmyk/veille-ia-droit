@@ -127,6 +127,19 @@ de la liste `juridiques` (par exemple `droit` ou `code`).
 Si tu reçois **trop peu d'articles** : ajoute des mots dans `obligatoires`,
 ou élargis la période avec `python veille.py --jours 30`.
 
+Chaque source a aussi un réglage `filtre` dans `sources.yaml` :
+
+- `double` (le défaut) exige un mot du thème IA **et** un mot juridique.
+  C'est le réglage des flux officiels, qui publient de tout.
+- `simple` n'exige qu'un mot du thème. C'est le réglage des recherches
+  Google Actualités : leur requête contient déjà les termes juridiques,
+  et leur résumé RSS se limite au titre, donc le filtre double y
+  rejetterait presque tout.
+
+Le journal indique après chaque exécution combien d'articles ont été
+écartés et pour quel motif — trop ancien, déjà vu, hors sujet. C'est ce
+qui te dit quel réglage toucher.
+
 Pour ajouter une source, copie un bloc dans `sources.yaml` et change les
 valeurs. Pour fabriquer un flux Google Actualités sur un sujet précis :
 
